@@ -2,20 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'screens/main_screen.dart';
 
-// 🔥 NEW IMPORTS (REMINDER SYSTEM)
+// Notifications
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 FlutterLocalNotificationsPlugin();
 
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  /// 🔥 INIT TIMEZONE (REQUIRED)
+Future<void> _initNotifications() async {
   tz.initializeTimeZones();
 
-  /// 🔥 INIT NOTIFICATIONS
   const AndroidInitializationSettings androidSettings =
   AndroidInitializationSettings('@mipmap/ic_launcher');
 
@@ -23,8 +19,13 @@ Future<void> main() async {
   InitializationSettings(android: androidSettings);
 
   await flutterLocalNotificationsPlugin.initialize(settings);
+}
 
-  /// STATUS BAR
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await _initNotifications();
+
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -57,7 +58,7 @@ class _MyAppState extends State<MyApp> {
 
       themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
 
-      /// 🔥 LIGHT THEME
+      // LIGHT THEME
       theme: ThemeData(
         brightness: Brightness.light,
         useMaterial3: true,
@@ -68,7 +69,7 @@ class _MyAppState extends State<MyApp> {
         ),
       ),
 
-      /// 🔥 DARK THEME
+      // DARK THEME
       darkTheme: ThemeData(
         brightness: Brightness.dark,
         useMaterial3: true,
