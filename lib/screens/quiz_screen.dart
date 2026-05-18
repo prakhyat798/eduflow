@@ -1,6 +1,5 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class QuizScreen extends StatefulWidget {
   final List<dynamic> quizData;
@@ -49,6 +48,7 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   void _showScoreDialog() {
+    final isPerfect = score == widget.quizData.length;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -56,18 +56,41 @@ class _QuizScreenState extends State<QuizScreen> {
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: AlertDialog(
           backgroundColor:
-          widget.isDark ? const Color(0xFF1A132C) : Colors.white,
+              widget.isDark ? const Color(0xFF111827) : Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
           ),
-          title: const Text(
-            "Quiz Complete!",
+          title: Text(
+            isPerfect ? "Perfect Score! 🎉" : "Quiz Complete!",
             textAlign: TextAlign.center,
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: const TextStyle(fontWeight: FontWeight.bold),
           ),
-          content: Text(
-            "You scored $score / ${widget.quizData.length}",
-            textAlign: TextAlign.center,
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                "$score / ${widget.quizData.length} correct",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  color: isPerfect
+                      ? const Color(0xFF0CBF83)
+                      : const Color(0xFF9147FF),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                isPerfect
+                    ? "Excellent work! You nailed it."
+                    : "Keep practising to improve!",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: widget.isDark ? Colors.white54 : Colors.black54,
+                  fontSize: 13,
+                ),
+              ),
+            ],
           ),
           actionsAlignment: MainAxisAlignment.center,
           actions: [
@@ -79,28 +102,16 @@ class _QuizScreenState extends State<QuizScreen> {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
               ),
-              onPressed: () async {
-                final prefs =
-                await SharedPreferences.getInstance();
-
-                int stepIndex =
-                    prefs.getInt("current_step_index") ?? 0;
-
-                // 🔥 MOVE TO NEXT STEP
-                await prefs.setInt(
-                    "current_step_index", stepIndex + 1);
-
-                // 🔥 GO BACK TO HOME
+              onPressed: () {
                 if (context.mounted) {
-                  Navigator.popUntil(
-                      context, (route) => route.isFirst);
+                  Navigator.pop(context); // close dialog
+                  Navigator.pop(context); // go back to PDF screen
                 }
               },
               child: const Text(
-                "Finish",
+                "Done",
                 style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold),
+                    color: Colors.white, fontWeight: FontWeight.bold),
               ),
             ),
           ],
@@ -117,7 +128,7 @@ class _QuizScreenState extends State<QuizScreen> {
 
     return Scaffold(
       backgroundColor:
-      widget.isDark ? const Color(0xFF0A0616) : Colors.grey[50],
+      widget.isDark ? const Color(0xFF080B14) : Colors.grey[50],
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -156,7 +167,7 @@ class _QuizScreenState extends State<QuizScreen> {
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: widget.isDark
-                        ? const Color(0xFF1A132C)
+                        ? const Color(0xFF111827)
                         : Colors.white,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(

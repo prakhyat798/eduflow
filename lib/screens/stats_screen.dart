@@ -11,56 +11,101 @@ class StatsScreen extends StatefulWidget {
   State<StatsScreen> createState() => _StatsScreenState();
 }
 
-class _StatsScreenState extends State<StatsScreen> {
-  // We use dynamic here to avoid type errors when parsing the lists
+class _StatsScreenState extends State<StatsScreen> with WidgetsBindingObserver {
   List<dynamic> tasks = [];
   List<dynamic> habits = [];
 
   int todayMinutes = 0;
   int totalMinutes = 0;
+  int streak = 0;
+  int bestStreak = 0;
+  int lessonsCount = 0;
   bool _isLoading = true;
 
   int _selectedTab = 0;
 
-  final Color bgDark = const Color(0xFF0A0616);
-  final Color cardDark = const Color(0xFF1A132C);
+  final Color bgDark = const Color(0xFF080B14);
+  final Color cardDark = const Color(0xFF111827);
   final Color accentPurple = const Color(0xFF9147FF);
   final Color accentGreen = const Color(0xFF0CBF83);
-  final Color textMutedDark = const Color(0xFF8A849C);
+  final Color textMutedDark = const Color(0xFF6B7280);
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadData();
   }
 
-  // 🔥 FIXED CORE LOGIC: Correctly parsing the SharedPreferences data
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  // Refresh stats whenever app comes back to foreground
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadData();
+    }
+  }
+
   Future<void> _loadData() async {
+    if (mounted) setState(() => _isLoading = true);
     final prefs = await SharedPreferences.getInstance();
 
     try {
-      // 1. Load Tasks safely
+      // 1. Daily reset: if today_minutes is from a previous day, reset it
+      final String today = DateTime.now().toIso8601String().substring(0, 10);
+      final String? lastFocusDate = prefs.getString('last_focus_date');
+      int loadedTodayMins = prefs.getInt('today_minutes') ?? 0;
+      if (lastFocusDate != null && lastFocusDate != today) {
+        loadedTodayMins = 0;
+        await prefs.setInt('today_minutes', 0);
+        await prefs.setString('last_focus_date', today);
+      }
+
+      // 2. Load Tasks
       final String? tasksData = prefs.getString('tasks');
-      if (tasksData != null) {
-        tasks = jsonDecode(tasksData);
-      }
+      final List<dynamic> loadedTasks = tasksData != null ? jsonDecode(tasksData) : [];
 
-      // 2. Load Habits safely
+      // 3. Load Habits
       final String? habitsData = prefs.getString('habits');
-      if (habitsData != null) {
-        habits = jsonDecode(habitsData);
-      }
+      final List<dynamic> loadedHabits = habitsData != null ? jsonDecode(habitsData) : [];
 
-      // 3. Load Focus Minutes
-      setState(() {
-        todayMinutes = prefs.getInt("today_minutes") ?? 0;
-        totalMinutes = prefs.getInt("total_minutes") ?? 0;
-        _isLoading = false;
-      });
+      // 4. Load streak
+      final int loadedStreak = prefs.getInt('streak') ?? 0;
+      final int loadedBest = prefs.getInt('best_streak') ?? 0;
+
+      // 5. Load lessons count
+      final List<String> history = prefs.getStringList('learning_history') ?? [];
+
+      if (mounted) {
+        setState(() {
+          tasks = loadedTasks;
+          habits = loadedHabits;
+          todayMinutes = loadedTodayMins;
+          totalMinutes = prefs.getInt('total_minutes') ?? 0;
+          streak = loadedStreak;
+          bestStreak = loadedBest;
+          lessonsCount = history.length;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      debugPrint("Error loading stats data: $e");
-      setState(() => _isLoading = false);
+      debugPrint('Error loading stats data: $e');
+      if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  // Smart time display: shows minutes for small values, hours for large
+  String _formatFocusTime(int minutes) {
+    if (minutes == 0) return '0 min';
+    if (minutes < 60) return '$minutes min';
+    final h = minutes ~/ 60;
+    final m = minutes % 60;
+    return m == 0 ? '${h}h' : '${h}h ${m}m';
   }
 
   Widget _buildTab(String title, int index, Color mutedColor) {
@@ -299,7 +344,7 @@ class _StatsScreenState extends State<StatsScreen> {
                       child: _StatPill(
                         isDark: widget.isDark,
                         label: "Focus Today",
-                        value: "$todayMinutes min",
+                        value: _formatFocusTime(todayMinutes),
                         color: const Color(0xFF0EA5E9),
                         icon: Icons.timer_outlined,
                       ),
@@ -309,9 +354,43 @@ class _StatsScreenState extends State<StatsScreen> {
                       child: _StatPill(
                         isDark: widget.isDark,
                         label: "All-Time Focus",
-                        value: "${(totalMinutes / 60).toStringAsFixed(1)}h",
+                        value: _formatFocusTime(totalMinutes),
                         color: const Color(0xFFEC4899),
                         icon: Icons.insights_rounded,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _StatPill(
+                        isDark: widget.isDark,
+                        label: "Day Streak",
+                        value: "$streak 🔥",
+                        color: Colors.orange,
+                        icon: Icons.local_fire_department_rounded,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _StatPill(
+                        isDark: widget.isDark,
+                        label: "Best Streak",
+                        value: "$bestStreak 🏆",
+                        color: const Color(0xFFF59E0B),
+                        icon: Icons.emoji_events_rounded,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _StatPill(
+                        isDark: widget.isDark,
+                        label: "Lessons",
+                        value: lessonsCount.toString(),
+                        color: const Color(0xFF8B5CF6),
+                        icon: Icons.menu_book_rounded,
                       ),
                     ),
                   ],
@@ -342,8 +421,8 @@ class _StatPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cardColor = isDark ? const Color(0xFF1A132C) : Colors.white;
-    final mutedTextColor = isDark ? const Color(0xFF8A849C) : Colors.grey[600]!;
+    final cardColor = isDark ? const Color(0xFF111827) : Colors.white;
+    final mutedTextColor = isDark ? const Color(0xFF6B7280) : Colors.grey[600]!;
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),

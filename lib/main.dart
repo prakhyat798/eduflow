@@ -69,12 +69,11 @@ class _MyAppState extends State<MyApp> {
         ),
       ),
 
-      // DARK THEME
       darkTheme: ThemeData(
         brightness: Brightness.dark,
         useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFF0A0616),
-        cardColor: const Color(0xFF1A132C),
+        scaffoldBackgroundColor: const Color(0xFF080B14),
+        cardColor: const Color(0xFF111827),
         textTheme: const TextTheme(
           bodyMedium: TextStyle(color: Colors.white),
         ),

@@ -26,8 +26,8 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
 
   // 🔥 Dynamic Theme Getters (Matches Home Screen)
   static const Color _accentPurple = Color(0xFF9147FF);
-  Color get bg => widget.isDark ? const Color(0xFF0A0616) : Colors.grey[50]!;
-  Color get cardBg => widget.isDark ? const Color(0xFF1A132C) : Colors.white;
+  Color get bg => widget.isDark ? const Color(0xFF080B14) : Colors.grey[50]!;
+  Color get cardBg => widget.isDark ? const Color(0xFF111827) : Colors.white;
   Color get textColor => widget.isDark ? Colors.white : Colors.black87;
   Color get mutedText => widget.isDark ? const Color(0xFF8A849C) : Colors.black54;
 

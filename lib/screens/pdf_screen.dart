@@ -22,6 +22,7 @@ class _PdfScreenState extends State<PdfScreen> {
   String _fileName = "";
   bool _isLoading = false;
   bool _isGeneratingQuiz = false;
+  List<String> _savedFiles = []; // ✅ FIX: loaded in initState, not in build()
 
   // ── Theme tokens ────────────────────────────────────────────
   static const Color accent = Color(0xFF9147FF);
@@ -29,18 +30,38 @@ class _PdfScreenState extends State<PdfScreen> {
   static const Color danger = Color(0xFFFF4D4D);
 
   // ── Helpers ─────────────────────────────────────────────────
-  Color get _bg => widget.isDark ? const Color(0xFF0A0616) : const Color(0xFFF3F4F8);
-  Color get _card => widget.isDark ? const Color(0xFF1A132C) : Colors.white;
+  Color get _bg => widget.isDark ? const Color(0xFF080B14) : const Color(0xFFF3F4F8);
+  Color get _card => widget.isDark ? const Color(0xFF111827) : Colors.white;
   Color get _text => widget.isDark ? Colors.white : const Color(0xFF1A1A2E);
-  Color get _sub => widget.isDark ? Colors.white38 : Colors.black38;
+  Color get _sub => widget.isDark ? const Color(0xFF6B7280) : Colors.black38;
+
+  // ── Init ─────────────────────────────────────────────────────
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedFiles();
+  }
+
+  // ── Load saved files list ────────────────────────────────────
+  Future<void> _loadSavedFiles() async {
+    final prefs = await SharedPreferences.getInstance();
+    final files = List<String>.from(prefs.getStringList('pdf_files') ?? []);
+    // Filter out files that no longer exist on disk
+    final existing = files.where((p) => File(p).existsSync()).toList();
+    if (existing.length != files.length) {
+      await prefs.setStringList('pdf_files', existing);
+    }
+    if (mounted) setState(() => _savedFiles = existing);
+  }
 
   // ── Save path ───────────────────────────────────────────────
   Future<void> _savePdf(String path) async {
     final prefs = await SharedPreferences.getInstance();
-    List<String> files = List.from(prefs.getStringList("pdf_files") ?? []);
+    List<String> files = List.from(prefs.getStringList('pdf_files') ?? []);
     files.remove(path);
     files.insert(0, path);
-    await prefs.setStringList("pdf_files", files);
+    await prefs.setStringList('pdf_files', files);
+    setState(() => _savedFiles = files);
   }
 
   // ── Extract + Summarise (shared logic) ──────────────────────
@@ -104,11 +125,12 @@ class _PdfScreenState extends State<PdfScreen> {
     }
   }
 
-  // ── Delete file ──────────────────────────────────────────────
-  Future<void> _deleteFile(SharedPreferences prefs, List<String> files, String path) async {
+  Future<void> _deleteFile(String path) async {
+    final prefs = await SharedPreferences.getInstance();
+    final files = List<String>.from(prefs.getStringList('pdf_files') ?? []);
     files.remove(path);
-    await prefs.setStringList("pdf_files", files);
-    setState(() {});
+    await prefs.setStringList('pdf_files', files);
+    setState(() => _savedFiles = files);
   }
 
   // ── UI ───────────────────────────────────────────────────────
@@ -377,173 +399,168 @@ class _PdfScreenState extends State<PdfScreen> {
 
   // ── Saved files section ──────────────────────────────────────
   Widget _buildSavedSection() {
-    return FutureBuilder<SharedPreferences>(
-      future: SharedPreferences.getInstance(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) return const SizedBox();
-        final prefs = snapshot.data!;
-        final files = List<String>.from(prefs.getStringList("pdf_files") ?? []);
+    final files = _savedFiles;
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section header
+        Row(
           children: [
-            // Section header
-            Row(
-              children: [
-                Text(
-                  "Saved Documents",
-                  style: TextStyle(
-                    color: _text,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                  ),
-                ),
-                const Spacer(),
-                if (files.isNotEmpty)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: accentSoft,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      "${files.length}",
-                      style: const TextStyle(
-                        color: accent,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-              ],
+            Text(
+              'Saved Documents',
+              style: TextStyle(
+                color: _text,
+                fontWeight: FontWeight.w700,
+                fontSize: 16,
+              ),
             ),
-            const SizedBox(height: 14),
-
-            // Empty state
-            if (files.isEmpty)
+            const Spacer(),
+            if (files.isNotEmpty)
               Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 32),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                 decoration: BoxDecoration(
-                  color: _card,
-                  borderRadius: BorderRadius.circular(16),
+                  color: accentSoft,
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                child: Column(
-                  children: [
-                    Icon(Icons.folder_open_rounded, color: _sub, size: 36),
-                    const SizedBox(height: 10),
-                    Text(
-                      "No documents yet",
-                      style: TextStyle(color: _sub, fontSize: 13),
-                    ),
-                  ],
+                child: Text(
+                  '${files.length}',
+                  style: const TextStyle(
+                    color: accent,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
-
-            // File list
-            ...files.map((path) {
-              final name = path.split('/').last;
-              final ext = name.split('.').last.toUpperCase();
-
-              return GestureDetector(
-                onTap: () async {
-                  await _savePdf(path);
-                  await _processPath(path);
-                },
-                child: Container(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: _card,
-                    borderRadius: BorderRadius.circular(16),
-                    border: _fileName == name
-                        ? Border.all(color: accent.withOpacity(0.5), width: 1.5)
-                        : null,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(widget.isDark ? 0.2 : 0.04),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      )
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      // File type badge
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: danger.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Center(
-                          child: Text(
-                            ext,
-                            style: const TextStyle(
-                              color: danger,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-
-                      // File name
-                      Expanded(
-                        child: Text(
-                          name,
-                          style: TextStyle(
-                            color: _text,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-
-                      // Active indicator
-                      if (_fileName == name)
-                        Container(
-                          margin: const EdgeInsets.only(right: 8),
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: accentSoft,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Text(
-                            "Active",
-                            style: TextStyle(
-                              color: accent,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-
-                      // Delete
-                      GestureDetector(
-                        onTap: () => _deleteFile(prefs, files, path),
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: danger.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Icon(Icons.delete_outline,
-                              color: danger, size: 18),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
           ],
-        );
-      },
+        ),
+        const SizedBox(height: 14),
+
+        // Empty state
+        if (files.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 32),
+            decoration: BoxDecoration(
+              color: _card,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              children: [
+                Icon(Icons.folder_open_rounded, color: _sub, size: 36),
+                const SizedBox(height: 10),
+                Text(
+                  'No documents yet',
+                  style: TextStyle(color: _sub, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+
+        // File list
+        ...files.map((path) {
+          final name = path.split('/').last;
+          final ext = name.split('.').last.toUpperCase();
+
+          return GestureDetector(
+            onTap: () async {
+              await _savePdf(path);
+              await _processPath(path);
+            },
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: _card,
+                borderRadius: BorderRadius.circular(16),
+                border: _fileName == name
+                    ? Border.all(color: accent.withOpacity(0.5), width: 1.5)
+                    : null,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black
+                        .withOpacity(widget.isDark ? 0.2 : 0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  )
+                ],
+              ),
+              child: Row(
+                children: [
+                  // File type badge
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: danger.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Center(
+                      child: Text(
+                        ext,
+                        style: const TextStyle(
+                          color: danger,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+
+                  // File name
+                  Expanded(
+                    child: Text(
+                      name,
+                      style: TextStyle(
+                        color: _text,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+
+                  // Active indicator
+                  if (_fileName == name)
+                    Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 7, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: accentSoft,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Text(
+                        'Active',
+                        style: TextStyle(
+                          color: accent,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+
+                  // Delete
+                  GestureDetector(
+                    onTap: () => _deleteFile(path),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: danger.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.delete_outline,
+                          color: danger, size: 18),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+      ],
     );
   }
 

@@ -16,10 +16,10 @@ class _NotesScreenState extends State<NotesScreen> {
   List<Map<String, dynamic>> notes = [];
   bool _isLoading = true;
 
-  final Color bgDark = const Color(0xFF0A0616);
-  final Color cardDark = const Color(0xFF1A132C);
+  final Color bgDark = const Color(0xFF080B14);
+  final Color cardDark = const Color(0xFF111827);
   final Color accentPurple = const Color(0xFF9147FF);
-  final Color textMutedDark = const Color(0xFF8A849C);
+  final Color textMutedDark = const Color(0xFF6B7280);
 
   final List<Color> noteColors = [
     const Color(0xFF1E293B),

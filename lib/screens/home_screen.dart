@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'dart:ui' show ImageFilter;
@@ -29,15 +30,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // ── Palette ──────────────────────────────────────────────────
   static const Color _accent = Color(0xFF9147FF);
-  static const Color _cardDark = Color(0xFF150F27);
-  static const Color _bgDark = Color(0xFF0A0616);
+  static const Color _cardDark = Color(0xFF111827);
+  static const Color _bgDark = Color(0xFF080B14);
 
   // ── Theme helpers ────────────────────────────────────────────
   Color get bg => widget.isDark ? _bgDark : const Color(0xFFF3F4F8);
   Color get cardBg => widget.isDark ? _cardDark : Colors.white;
   Color get textColor => widget.isDark ? Colors.white : const Color(0xFF1A1A2E);
-  Color get mutedText => widget.isDark ? const Color(0xFF6B6480) : Colors.black38;
-  Color get divider => widget.isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.06);
+  Color get mutedText => widget.isDark ? const Color(0xFF6B7280) : Colors.black38;
+  Color get divider => widget.isDark ? const Color(0xFF1F2937) : Colors.black.withValues(alpha: 0.06);
 
   @override
   void initState() {
@@ -361,49 +362,82 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ── Quote card ───────────────────────────────────────────────
+  static const List<Map<String, String>> _quotes = [
+    {"q": "Small disciplines lead to great achievements.", "a": "John C. Maxwell"},
+    {"q": "An investment in knowledge pays the best interest.", "a": "Benjamin Franklin"},
+    {"q": "The secret of getting ahead is getting started.", "a": "Mark Twain"},
+    {"q": "Education is the most powerful weapon you can use.", "a": "Nelson Mandela"},
+    {"q": "Success is the sum of small efforts repeated daily.", "a": "Robert Collier"},
+  ];
+
   Widget _buildQuote() {
+    final quote = _quotes[DateTime.now().day % _quotes.length];
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
         padding: const EdgeInsets.all(22),
         decoration: BoxDecoration(
-          color: cardBg,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: widget.isDark
+                ? [const Color(0xFF111827), const Color(0xFF0D1117)]
+                : [Colors.white, const Color(0xFFF8F6FF)],
+          ),
           borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: _accent.withValues(alpha: 0.12)),
+          border: Border.all(color: _accent.withValues(alpha: 0.15)),
           boxShadow: widget.isDark
-              ? []
-              : [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 16, offset: const Offset(0, 6))],
+              ? [BoxShadow(color: _accent.withValues(alpha: 0.08), blurRadius: 20, offset: const Offset(0, 8))]
+              : [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 16, offset: const Offset(0, 6))],
         ),
         child: Stack(
           children: [
             Positioned(
-              right: -8,
-              top: -16,
-              child: Icon(Icons.format_quote_rounded, size: 72, color: _accent.withValues(alpha: 0.05)),
+              right: -4,
+              top: -12,
+              child: Icon(Icons.format_quote_rounded, size: 80, color: _accent.withValues(alpha: 0.06)),
             ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.auto_awesome_rounded, color: _accent.withValues(alpha: 0.8), size: 18),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: _accent.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(Icons.auto_awesome_rounded, color: _accent, size: 14),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      "Daily Inspiration",
+                      style: TextStyle(color: _accent, fontWeight: FontWeight.w700, fontSize: 11, letterSpacing: 0.5),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 14),
                 Text(
-                  '"Small disciplines lead to great achievements."',
+                  '"${quote["q"]}"',
                   style: TextStyle(
-                    fontSize: 15,
+                    fontSize: 14.5,
                     fontStyle: FontStyle.italic,
-                    color: textColor.withValues(alpha: 0.88),
-                    height: 1.5,
+                    color: textColor.withValues(alpha: 0.9),
+                    height: 1.6,
+                    letterSpacing: 0.1,
                   ),
                 ),
-                const SizedBox(height: 10),
-                Text(
-                  "— John C. Maxwell",
-                  style: TextStyle(
-                    color: _accent.withValues(alpha: 0.8),
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12,
-                    letterSpacing: 0.4,
-                  ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Container(width: 20, height: 2, decoration: BoxDecoration(color: _accent.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(1))),
+                    const SizedBox(width: 8),
+                    Text(
+                      quote["a"]!,
+                      style: TextStyle(color: _accent.withValues(alpha: 0.85), fontWeight: FontWeight.w700, fontSize: 11, letterSpacing: 0.4),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -625,73 +659,95 @@ class _HomeScreenState extends State<HomeScreen> {
             final item = entry.value;
             final isDone = item.isDone;
 
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-              decoration: BoxDecoration(
-                color: isDone ? color.withValues(alpha: 0.06) : cardBg,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: isDone ? color.withValues(alpha: 0.25) : divider,
-                  width: 1.2,
+            return Dismissible(
+              key: ValueKey('${title}_$i'),
+              direction: DismissDirection.endToStart,
+              onDismissed: (_) {
+                HapticFeedback.lightImpact();
+                setState(() => items.removeAt(i));
+                _save();
+              },
+              background: Container(
+                alignment: Alignment.centerRight,
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.only(right: 20),
+                decoration: BoxDecoration(
+                  color: Colors.redAccent,
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                boxShadow: isDone || widget.isDark
-                    ? []
-                    : [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
+                child: const Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.delete_rounded, color: Colors.white, size: 20),
+                    SizedBox(height: 4),
+                    Text("Delete", style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700)),
+                  ],
+                ),
               ),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      setState(() => item.isDone = !item.isDone);
-                      _save();
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      width: 22,
-                      height: 22,
-                      decoration: BoxDecoration(
-                        color: isDone ? color : Colors.transparent,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: isDone ? color : mutedText.withValues(alpha: 0.35),
-                          width: 2,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                decoration: BoxDecoration(
+                  color: isDone ? color.withValues(alpha: 0.07) : cardBg,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isDone ? color.withValues(alpha: 0.3) : divider,
+                    width: 1.2,
+                  ),
+                  boxShadow: isDone || widget.isDark
+                      ? []
+                      : [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
+                ),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        setState(() => item.isDone = !item.isDone);
+                        _save();
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: isDone ? color : Colors.transparent,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isDone ? color : mutedText.withValues(alpha: 0.35),
+                            width: 2,
+                          ),
+                          boxShadow: isDone ? [BoxShadow(color: color.withValues(alpha: 0.35), blurRadius: 8)] : [],
                         ),
-                      ),
-                      child: isDone
-                          ? const Icon(Icons.check_rounded, size: 13, color: Colors.white)
-                          : null,
-                    ),
-                  ),
-                  const SizedBox(width: 13),
-                  Expanded(
-                    child: Text(
-                      item.title,
-                      style: TextStyle(
-                        color: isDone ? mutedText : textColor,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        decoration: isDone ? TextDecoration.lineThrough : TextDecoration.none,
-                        decorationColor: mutedText,
+                        child: isDone
+                            ? const Icon(Icons.check_rounded, size: 14, color: Colors.white)
+                            : null,
                       ),
                     ),
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      setState(() => items.removeAt(i));
-                      _save();
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(5),
-                      decoration: BoxDecoration(
-                        color: Colors.red.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(7),
+                    const SizedBox(width: 13),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.title,
+                            style: TextStyle(
+                              color: isDone ? mutedText : textColor,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              decoration: isDone ? TextDecoration.lineThrough : TextDecoration.none,
+                              decorationColor: mutedText,
+                            ),
+                          ),
+                          if (isDone)
+                            Text("Completed", style: TextStyle(color: color.withValues(alpha: 0.7), fontSize: 10, fontWeight: FontWeight.w600)),
+                        ],
                       ),
-                      child: const Icon(Icons.close_rounded, color: Colors.redAccent, size: 15),
                     ),
-                  ),
-                ],
+                    Icon(Icons.swipe_left_alt_rounded, color: mutedText.withValues(alpha: 0.3), size: 15),
+                  ],
+                ),
               ),
             );
           }),
@@ -888,6 +944,120 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // ── Header ───────────────────────────────────────────────────
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 5) return "Good Night";
+    if (hour < 12) return "Good Morning";
+    if (hour < 17) return "Good Afternoon";
+    if (hour < 21) return "Good Evening";
+    return "Good Night";
+  }
+
+  String _getGreetingEmoji() {
+    final hour = DateTime.now().hour;
+    if (hour < 5) return "🌙";
+    if (hour < 12) return "☀️";
+    if (hour < 17) return "⚡";
+    if (hour < 21) return "🌆";
+    return "🌙";
+  }
+
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 28, 20, 22),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(_getGreetingEmoji(), style: const TextStyle(fontSize: 18)),
+                  const SizedBox(width: 6),
+                  Text(
+                    _getGreeting(),
+                    style: TextStyle(fontSize: 14, color: mutedText, fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                "EduFlow",
+                style: TextStyle(
+                  fontSize: 34,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -1.2,
+                  color: textColor,
+                  height: 1.1,
+                ),
+              ),
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: _addReminder,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.orange.withValues(alpha: 0.25)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text("🔥", style: TextStyle(fontSize: 13)),
+                      const SizedBox(width: 5),
+                      Text(
+                        "$streak Day Streak",
+                        style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.w800, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          Column(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  color: cardBg,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: divider),
+                  boxShadow: widget.isDark ? [] : [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 10)],
+                ),
+                child: IconButton(
+                  onPressed: _addReminder,
+                  icon: Icon(Icons.alarm_add_rounded, color: textColor, size: 20),
+                  tooltip: "Add Reminder",
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: cardBg,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: divider),
+                  boxShadow: widget.isDark ? [] : [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 10)],
+                ),
+                child: IconButton(
+                  onPressed: widget.toggleTheme,
+                  icon: Icon(
+                    widget.isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                    color: textColor,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   // ── Build ────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
@@ -898,23 +1068,29 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.only(bottom: 110),
         child: Container(
           decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF7C3AED), Color(0xFF9F5FFF)],
+            ),
+            borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: _accent.withValues(alpha: 0.35),
-                blurRadius: 20,
+                color: _accent.withValues(alpha: 0.4),
+                blurRadius: 24,
                 offset: const Offset(0, 8),
               ),
             ],
-            borderRadius: BorderRadius.circular(20),
           ),
           child: FloatingActionButton.extended(
-            backgroundColor: _accent,
-            onPressed: _showAddDialog,
+            backgroundColor: Colors.transparent,
+            onPressed: () {
+              HapticFeedback.mediumImpact();
+              _showAddDialog();
+            },
             elevation: 0,
             icon: const Icon(Icons.add_rounded, color: Colors.white),
             label: const Text(
               "Add Goal",
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, letterSpacing: 0.3),
             ),
           ),
         ),
@@ -928,84 +1104,7 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // ── Header ───────────────────────────────
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 28, 20, 22),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "EduFlow",
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -1,
-                            color: textColor,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.orange.withValues(alpha: 0.25)),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Text("🔥", style: TextStyle(fontSize: 13)),
-                              const SizedBox(width: 5),
-                              Text(
-                                "$streak Day Streak",
-                                style: const TextStyle(
-                                  color: Colors.orange,
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            color: cardBg,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: divider),
-                          ),
-                          child: IconButton(
-                            onPressed: _addReminder,
-                            icon: Icon(Icons.alarm_add_rounded, color: textColor, size: 20),
-                            tooltip: "Add Reminder",
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: cardBg,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: divider),
-                          ),
-                          child: IconButton(
-                            onPressed: widget.toggleTheme,
-                            icon: Icon(
-                              widget.isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-                              color: textColor,
-                              size: 20,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+              _buildHeader(),
 
               // ── Progress card ────────────────────────
               _buildProgressCard(),
