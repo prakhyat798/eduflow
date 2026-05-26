@@ -46,7 +46,9 @@ class AlarmRingScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 20),
                     Text(
-                      alarmSettings.notificationBody ?? "Time's up!",
+                      alarmSettings.notificationSettings.body.isNotEmpty
+                          ? alarmSettings.notificationSettings.body
+                          : "Time's up!",
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 28,
