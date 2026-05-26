@@ -36,6 +36,7 @@ dependencies:
   # 🔥 REMINDER SYSTEM (NEW - CRITICAL)
   flutter_local_notifications: ^17.2.1
   timezone: ^0.9.3
+  alarm: ^5.4.0
 
 dev_dependencies:
   flutter_test:
@@ -47,3 +48,4 @@ flutter:
 
   assets:
     - assets/images/focus_bg.jpg
+    - assets/alarm.mp3

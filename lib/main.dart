@@ -1,30 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:alarm/alarm.dart';
+import 'dart:async';
 import 'screens/main_screen.dart';
+import 'screens/alarm_ring_screen.dart';
+import 'services/reminder_service.dart';
 
-// Notifications
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:timezone/data/latest.dart' as tz;
-
-final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-FlutterLocalNotificationsPlugin();
-
-Future<void> _initNotifications() async {
-  tz.initializeTimeZones();
-
-  const AndroidInitializationSettings androidSettings =
-  AndroidInitializationSettings('@mipmap/ic_launcher');
-
-  const InitializationSettings settings =
-  InitializationSettings(android: androidSettings);
-
-  await flutterLocalNotificationsPlugin.initialize(settings);
-}
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await _initNotifications();
+  await ReminderService.init();
+
+  // Listen for alarm rings
+  Alarm.ringStream.stream.listen((alarmSettings) {
+    navigatorKey.currentState?.push(
+      MaterialPageRoute(
+        builder: (context) => AlarmRingScreen(alarmSettings: alarmSettings),
+      ),
+    );
+  });
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -54,6 +50,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
 
       themeMode: isDark ? ThemeMode.dark : ThemeMode.light,

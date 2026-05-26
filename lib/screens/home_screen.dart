@@ -316,13 +316,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   Navigator.pop(dialogCtx);
 
                   final now = DateTime.now();
-                  final scheduledTime = DateTime(
+                  DateTime scheduledTime = DateTime(
                     now.year,
                     now.month,
                     now.day,
                     picked!.hour,
                     picked!.minute,
                   );
+
+                  // If the time has already passed today, schedule for tomorrow
+                  if (scheduledTime.isBefore(now)) {
+                    scheduledTime = scheduledTime.add(const Duration(days: 1));
+                  }
 
                   // ── FIX: 32-bit safe ID ──────────────────
                   final int id = _generate32BitId();
@@ -341,6 +346,19 @@ class _HomeScreenState extends State<HomeScreen> {
                     time: scheduledTime,
                   );
                   await _saveReminders();
+
+                  if (mounted) {
+                    final timeFormatted = picked!.format(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("Reminder set for $timeFormatted", style: const TextStyle(fontWeight: FontWeight.w600)),
+                        backgroundColor: Colors.redAccent,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        margin: const EdgeInsets.only(bottom: 20, left: 20, right: 20),
+                      ),
+                    );
+                  }
                 },
                 child: const Text("Save", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
               ),

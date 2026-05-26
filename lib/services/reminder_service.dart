@@ -1,19 +1,9 @@
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:timezone/timezone.dart' as tz;
-import 'package:timezone/data/latest.dart' as tz;
+import 'package:alarm/alarm.dart';
+import 'package:alarm/model/alarm_settings.dart';
 
 class ReminderService {
-  static final FlutterLocalNotificationsPlugin _notifications =
-  FlutterLocalNotificationsPlugin();
-
   static Future<void> init() async {
-    tz.initializeTimeZones();
-
-    const android = AndroidInitializationSettings('@mipmap/ic_launcher');
-
-    const settings = InitializationSettings(android: android);
-
-    await _notifications.initialize(settings);
+    await Alarm.init();
   }
 
   static Future<void> scheduleReminder({
@@ -22,32 +12,28 @@ class ReminderService {
     required String body,
     required DateTime time,
   }) async {
-    await _notifications.zonedSchedule(
-      id,
-      title,
-      body,
-      tz.TZDateTime.from(time, tz.local),
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'reminder_channel',
-          'Reminders',
-          importance: Importance.max,
-          priority: Priority.high,
-        ),
+    final alarmSettings = AlarmSettings(
+      id: id,
+      dateTime: time,
+      assetAudioPath: 'assets/alarm.mp3',
+      loopAudio: true,
+      vibrate: true,
+      volumeSettings: VolumeSettings.fade(
+        volume: 0.8,
+        fadeDuration: const Duration(seconds: 3),
       ),
-
-      /// 🔥 REQUIRED FIX (IMPORTANT)
-      uiLocalNotificationDateInterpretation:
-      UILocalNotificationDateInterpretation.absoluteTime,
-
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-
-      /// 🔥 DAILY REPEAT (GOOD FOR DEMO)
-      matchDateTimeComponents: DateTimeComponents.time,
+      notificationSettings: NotificationSettings(
+        title: title,
+        body: body,
+        stopButton: 'Stop',
+      ),
+      androidFullScreenIntent: true,
     );
+
+    await Alarm.set(alarmSettings: alarmSettings);
   }
 
   static Future<void> cancelReminder(int id) async {
-    await _notifications.cancel(id);
+    await Alarm.stop(id);
   }
 }
