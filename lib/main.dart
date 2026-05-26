@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:alarm/alarm.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'screens/main_screen.dart';
 import 'screens/alarm_ring_screen.dart';
@@ -40,15 +41,32 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   bool isDark = true;
+  bool _themeLoaded = false;
 
-  void toggleTheme() {
+  @override
+  void initState() {
+    super.initState();
+    _loadTheme();
+  }
+
+  Future<void> _loadTheme() async {
+    final prefs = await SharedPreferences.getInstance();
     setState(() {
-      isDark = !isDark;
+      isDark = prefs.getBool('is_dark_mode') ?? true;
+      _themeLoaded = true;
     });
+  }
+
+  void toggleTheme() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() => isDark = !isDark);
+    await prefs.setBool('is_dark_mode', isDark);
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!_themeLoaded) return const SizedBox.shrink();
+
     return MaterialApp(
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,

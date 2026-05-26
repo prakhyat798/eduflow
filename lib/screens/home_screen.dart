@@ -27,6 +27,10 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Map<String, dynamic>> reminders = [];
   int streak = 0;
   bool _isLoading = true;
+  String _userName = '';
+
+  // ── Cached future so FutureBuilder doesn't re-fire on every rebuild ──
+  Future<Map<String, dynamic>?>? _progressFuture;
 
   // ── Palette ──────────────────────────────────────────────────
   static const Color _accent = Color(0xFF9147FF);
@@ -44,6 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadData();
+    _progressFuture = getProgressData();
   }
 
   Future<void> _loadData() async {
@@ -53,6 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final rawReminders = prefs.getString('reminders');
     setState(() {
       streak = prefs.getInt('streak') ?? 0;
+      _userName = prefs.getString('user_name') ?? '';
       if (rawTasks != null) {
         tasks = (jsonDecode(rawTasks) as List).map((e) => Item.fromJson(e)).toList();
       }
@@ -678,11 +684,13 @@ class _HomeScreenState extends State<HomeScreen> {
             final isDone = item.isDone;
 
             return Dismissible(
-              key: ValueKey('${title}_$i'),
+              // Use item title as key, NOT the index — prevents stale closure bug
+              // where the wrong item gets deleted after list shifts during animation
+              key: ValueKey('${title}_${item.title}'),
               direction: DismissDirection.endToStart,
               onDismissed: (_) {
                 HapticFeedback.lightImpact();
-                setState(() => items.removeAt(i));
+                setState(() => items.remove(item));
                 _save();
               },
               background: Container(
@@ -775,9 +783,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ── Progress card ────────────────────────────────────────────
+  // Refresh the cached future from outside (e.g. after roadmap change)
+  void _refreshProgress() => setState(() => _progressFuture = getProgressData());
+
   Widget _buildProgressCard() {
     return FutureBuilder(
-      future: getProgressData(),
+      future: _progressFuture,
       builder: (context, snapshot) {
         if (!snapshot.hasData || snapshot.data == null) {
           return Padding(
@@ -1003,7 +1014,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                "EduFlow",
+                _userName.isNotEmpty ? _userName : "EduFlow",
                 style: TextStyle(
                   fontSize: 34,
                   fontWeight: FontWeight.w900,

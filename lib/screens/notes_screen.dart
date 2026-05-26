@@ -15,6 +15,8 @@ class NotesScreen extends StatefulWidget {
 class _NotesScreenState extends State<NotesScreen> {
   List<Map<String, dynamic>> notes = [];
   bool _isLoading = true;
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
 
   final Color bgDark = const Color(0xFF080B14);
   final Color cardDark = const Color(0xFF111827);
@@ -30,10 +32,36 @@ class _NotesScreenState extends State<NotesScreen> {
     const Color(0xFF1E3A8A),
   ];
 
+  // Softer palette for light mode so cards don't look garish on white
+  final List<Color> noteLightColors = [
+    const Color(0xFFE2E8F0),
+    const Color(0xFFEDE9FE),
+    const Color(0xFFFAE8FF),
+    const Color(0xFFFFE4E6),
+    const Color(0xFFEFF6FF),
+    const Color(0xFFECFDF5),
+  ];
+
+  List<Map<String, dynamic>> get _filteredNotes {
+    if (_searchQuery.isEmpty) return notes;
+    final q = _searchQuery.toLowerCase();
+    return notes.where((n) {
+      final title = (n['title'] ?? '').toLowerCase();
+      final content = (n['content'] ?? '').toLowerCase();
+      return title.contains(q) || content.contains(q);
+    }).toList();
+  }
+
   @override
   void initState() {
     super.initState();
     _loadNotes();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadNotes() async {
@@ -249,6 +277,9 @@ class _NotesScreenState extends State<NotesScreen> {
   @override
   Widget build(BuildContext context) {
     final backgroundColor = widget.isDark ? bgDark : Colors.grey[50];
+    final colors = widget.isDark ? noteColors : noteLightColors;
+    final textOnNote = widget.isDark ? Colors.white : const Color(0xFF1A1A2E);
+    final filtered = _filteredNotes;
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -276,17 +307,70 @@ class _NotesScreenState extends State<NotesScreen> {
                   style: TextStyle(
                       fontSize: 15,
                       color: textMutedDark)),
-              const SizedBox(height: 32),
+              const SizedBox(height: 20),
+
+              // ── Search Bar ────────────────────────────────────────
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                decoration: BoxDecoration(
+                  color: widget.isDark ? cardDark : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: accentPurple.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.search_rounded, color: textMutedDark, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        style: TextStyle(
+                          color: widget.isDark ? Colors.white : Colors.black87,
+                          fontSize: 14,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: "Search notes...",
+                          hintStyle: TextStyle(color: textMutedDark),
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                        ),
+                        onChanged: (v) => setState(() => _searchQuery = v),
+                      ),
+                    ),
+                    if (_searchQuery.isNotEmpty)
+                      GestureDetector(
+                        onTap: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                        child: Icon(Icons.close_rounded, color: textMutedDark, size: 18),
+                      ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 20),
               Expanded(
                 child: _isLoading
                     ? Center(
                     child: CircularProgressIndicator(
                         color: accentPurple))
-                    : notes.isEmpty
+                    : filtered.isEmpty
                     ? Center(
-                    child: Text("No notes yet.",
-                        style:
-                        TextStyle(color: textMutedDark)))
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.search_off_rounded, size: 48, color: textMutedDark.withValues(alpha: 0.4)),
+                        const SizedBox(height: 12),
+                        Text(
+                          _searchQuery.isEmpty ? "No notes yet." : "No notes match \"$_searchQuery\"",
+                          style: TextStyle(color: textMutedDark),
+                        ),
+                      ],
+                    ))
                     : GridView.builder(
                   gridDelegate:
                   const SliverGridDelegateWithFixedCrossAxisCount(
@@ -295,17 +379,20 @@ class _NotesScreenState extends State<NotesScreen> {
                     mainAxisSpacing: 12,
                     childAspectRatio: 0.9,
                   ),
-                  itemCount: notes.length,
+                  itemCount: filtered.length,
                   itemBuilder: (context, i) {
-                    final note = notes[i];
+                    final note = filtered[i];
+                    // Find the original index for edit/delete to work correctly
+                    final originalIndex = notes.indexOf(note);
+                    final colorIdx = note['colorIndex'] ?? 0;
+                    final bgColor = colors[colorIdx.clamp(0, colors.length - 1)];
                     return GestureDetector(
                       onTap: () =>
-                          _showNoteDialog(note: note, index: i),
+                          _showNoteDialog(note: note, index: originalIndex),
                       child: Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: noteColors[
-                          note['colorIndex'] ?? 0],
+                          color: bgColor,
                           borderRadius:
                           BorderRadius.circular(24),
                         ),
@@ -315,17 +402,17 @@ class _NotesScreenState extends State<NotesScreen> {
                           children: [
                             if (note['title'].isNotEmpty)
                               Text(note['title'],
-                                  style: const TextStyle(
-                                      color: Colors.white,
+                                  style: TextStyle(
+                                      color: textOnNote,
                                       fontWeight:
                                       FontWeight.bold)),
                             const SizedBox(height: 8),
                             Expanded(
                               child: Text(note['content'],
                                   style: TextStyle(
-                                      color: Colors.white
+                                      color: textOnNote
                                           .withValues(
-                                          alpha: 0.8))),
+                                          alpha: 0.75))),
                             ),
                           ],
                         ),

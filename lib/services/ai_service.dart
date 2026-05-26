@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class AIService {
-  // ✅ HARDCODED (WORKING)
-  static const String apiKey =
-      "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";
+  // ⚠️ ADD YOUR OPENROUTER API KEY HERE
+  // Do NOT commit this key to GitHub. Use flutter_dotenv or a secrets manager.
+  static const String apiKey = "";
 
   static const String baseUrl =
       "https://openrouter.ai/api/v1/chat/completions";

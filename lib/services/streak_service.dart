@@ -11,26 +11,31 @@ class StreakService {
   static Future<void> recordCompletion() async {
     final prefs = await SharedPreferences.getInstance();
 
-    String today = DateTime.now().toIso8601String().substring(0, 10);
-    String? lastDate = prefs.getString("last_date");
+    final String today = DateTime.now().toIso8601String().substring(0, 10);
+    final String? lastDate = prefs.getString("last_date");
 
     int currentStreak = prefs.getInt("streak") ?? 0;
     int bestStreak = prefs.getInt("best_streak") ?? 0;
 
     if (lastDate == null) {
+      // First ever session
       currentStreak = 1;
+    } else if (lastDate == today) {
+      // Already recorded today — do nothing, don't double-count
     } else {
-      DateTime last = DateTime.parse(lastDate);
-      DateTime now = DateTime.now();
+      // Check if lastDate was exactly yesterday using date arithmetic
+      final last = DateTime.parse(lastDate);
+      final yesterday = DateTime.now().subtract(const Duration(days: 1));
+      final lastDateStr = last.toIso8601String().substring(0, 10);
+      final yesterdayStr = yesterday.toIso8601String().substring(0, 10);
 
-      int diff = now.difference(last).inDays;
-
-      if (diff == 1) {
+      if (lastDateStr == yesterdayStr) {
+        // Consecutive day — extend streak
         currentStreak += 1;
-      } else if (diff > 1) {
+      } else {
+        // Missed a day — reset
         currentStreak = 1;
       }
-      // if diff == 0 → same day → do nothing
     }
 
     if (currentStreak > bestStreak) {

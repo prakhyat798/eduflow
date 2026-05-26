@@ -29,17 +29,22 @@ class _MainScreenState extends State<MainScreen> {
 
   static const Color _purple = Color(0xFF9147FF);
 
+  // Screens are derived from widget props — only rebuilt when props change,
+  // not on every setState (which was creating fresh instances and losing state).
+  List<Widget> get _screens => [
+    HomeScreen(toggleTheme: widget.toggleTheme, isDark: widget.isDark),
+    StatsScreen(isDark: widget.isDark),
+    RoadmapScreen(isDark: widget.isDark),
+    FocusScreen(isDark: widget.isDark),
+    NotesScreen(isDark: widget.isDark),
+    PdfScreen(isDark: widget.isDark),
+    HistoryScreen(isDark: widget.isDark),
+  ];
+
   @override
   Widget build(BuildContext context) {
-    final screens = [
-      HomeScreen(toggleTheme: widget.toggleTheme, isDark: widget.isDark),
-      StatsScreen(isDark: widget.isDark),
-      RoadmapScreen(isDark: widget.isDark),
-      FocusScreen(isDark: widget.isDark),
-      NotesScreen(isDark: widget.isDark),
-      PdfScreen(isDark: widget.isDark),
-      HistoryScreen(isDark: widget.isDark),
-    ];
+    final screens = _screens;
+
 
     return Scaffold(
       extendBody: true, // Allows body to scroll behind the nav bar
